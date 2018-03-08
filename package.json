@@ -1,0 +1,10 @@
+{
+  "name": "wesync-signal",
+  "version": "0.0.1",
+  "description": "Signal server for WeSync Video Platform",
+  "main": "src/index.ts",
+  "repository": "https://github.com/WeSyncVideo/wesync-signal.git",
+  "author": "Brad Pfannmuller",
+  "license": "GNU",
+  "private": false
+}
