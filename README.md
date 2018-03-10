@@ -46,9 +46,33 @@ const server = new Server().listen()
 // Both
 const Peer = require('wesync-signal/peer')
 
-const peer = new Peer({
+new Peer({
   host: 'http://signalserverhost.com',  // Example host
   port: 3030,                           // Example port
+}).catch(err => {
+
+}).then(peer => {
+  // Get your uuid
+  peer.uuid
+
+  // Listen for other peers opening channel to you
+  peer.on('channel', channel => {
+    channel.emit('some-event', 'myPayload')
+
+    channel.on('response-event', payload => {
+
+    })
+  })
+
+  // Open channel with other users
+  peer
+    .channel('416ac246-e7ac-49ff-93b4-f7e94d997e6b')
+    .catch(err => {
+
+    })
+    .then(channel => {
+
+    })
 })
 
 peer
