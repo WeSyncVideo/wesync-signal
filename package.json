@@ -2,9 +2,18 @@
   "name": "wesync-signal",
   "version": "0.0.1",
   "description": "Signal server for WeSync Video Platform",
-  "main": "src/index.ts",
+  "main": "src/index.js",
   "repository": "https://github.com/WeSyncVideo/wesync-signal.git",
   "author": "Brad Pfannmuller",
-  "license": "GNU",
-  "private": false
+  "license": "GPL-3.0",
+  "private": false,
+  "dependencies": {
+    "socket.io": "^2.0.4",
+    "uuid": "^3.2.1"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.4",
+    "socket.io-client": "^2.0.4"
+  }
 }
