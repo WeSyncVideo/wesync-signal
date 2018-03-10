@@ -4,20 +4,15 @@ const path = require('path')
 
 task('default', async context => {
   await context.cleanDist()
-  context.moveFavicon()
-  const fuse = context.getConfig()
-  context.createBundle(fuse)
-  context.devServer(fuse)
+  context.isProduction = true
+  const fuse = FuseBox.init(context.baseConfig('browser'))
+  context.createBundle(fuse, 'peer')
   await fuse.run()
 })
 
 task('dist', async context => {
   await context.cleanDist()
-  context.moveFavicon()
   context.isProduction = true
-  const fuse = context.getConfig()
-  context.createBundle(fuse)
-  await fuse.run()
 })
 
 context(class {
@@ -34,8 +29,11 @@ context(class {
   }
 
   baseConfig (target) {
-    return FuseBox.init({
+    return {
       homeDir: 'src',
+      output: 'dist/$name.js',
+      cache: false,
+      package: 'wesync-signal',
       target: `${target}@es5`,
       useTypescriptCompiler: true,
       sourceMaps: { project: true, vendor: true },
@@ -44,38 +42,26 @@ context(class {
           NODE_ENV: this.isProduction ? 'production' : 'development',
         }),
         this.isProduction && QuantumPlugin({
-          bakeApiIntoBundle: 'app',
           uglify: true,
-          extendServerImport: true,
           treeshake: true,
           target,
         })
       ]
-    })
+    }
   }
 
-  createBundle (fuse) {
-    const bundle = fuse.bundle('app')
-      .instructions(' > index.js')
+  createBundle (fuse, name) {
+    const bundle = fuse.bundle(name)
+      .instructions(` > ${name}.ts`)
 
     if (!this.isProduction) {
       bundle
         .watch()
-        .cache(false)
+        .cache(true)
         .hmr()
     }
 
     return bundle
-  }
-
-  devServer (fuse) {
-    fuse.dev()
-  }
-
-  moveFavicon () {
-    src(path.resolve('src', 'assets', 'favicon.ico'))
-      .dest('dist/')
-      .exec()
   }
 
   async cleanDist () {

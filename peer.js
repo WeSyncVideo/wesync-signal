@@ -1,3 +1,3 @@
-var Peer = require('./dist/Peer')
+var Peer = require('./dist/peer')
 
 module.exports = Peer
