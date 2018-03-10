@@ -1,18 +1,25 @@
 const { src, context, task } = require('fuse-box/sparky')
-const { FuseBox, QuantumPlugin, EnvPlugin, BabelPlugin } = require('fuse-box')
+const { FuseBox, QuantumPlugin, EnvPlugin } = require('fuse-box')
 const path = require('path')
 
 task('default', async context => {
   await context.cleanDist()
-  context.isProduction = true
-  const fuse = FuseBox.init(context.baseConfig('browser'))
-  context.createBundle(fuse, 'peer')
-  await fuse.run()
+  context.isProduction = false
+  const { server, peer } = context.getConfigs()
+  context.createBundles({ server, peer })
+  context.run({ server, peer })
 })
 
-task('dist', async context => {
+task('prod', async context => {
   await context.cleanDist()
   context.isProduction = true
+  const { server, peer } = context.getConfigs()
+  context.createBundles({ server, peer })
+  context.run({ server, peer })
+})
+
+task('test', async context => {
+  throw new Error('not implmented yet')
 })
 
 context(class {
@@ -28,7 +35,7 @@ context(class {
     ))
   }
 
-  baseConfig (target) {
+  baseConfig (target, name) {
     return {
       homeDir: 'src',
       output: 'dist/$name.js',
@@ -45,8 +52,28 @@ context(class {
           uglify: true,
           treeshake: true,
           target,
+          bakeApiIntoBundle: name
         })
       ]
+    }
+  }
+
+  peerConfig () {
+    return this.merge(this.baseConfig('browser', 'peer'), {
+
+    })
+  }
+
+  serverConfig () {
+    return this.merge(this.baseConfig('server', 'server'), {
+
+    })
+  }
+
+  getConfigs () {
+    return {
+      server: this.serverConfig(),
+      peer: this.peerConfig()
     }
   }
 
@@ -54,17 +81,22 @@ context(class {
     const bundle = fuse.bundle(name)
       .instructions(` > ${name}.ts`)
 
-    if (!this.isProduction) {
-      bundle
-        .watch()
-        .cache(true)
-        .hmr()
-    }
-
     return bundle
+  }
+
+  createBundles ({ server, peer }) {
+    return {
+      serverBundle: this.createBundle(server, 'server'),
+      peerBundle: this.createBundle(peer, 'peer')
+    }
   }
 
   async cleanDist () {
     await src('dist/').clean('dist/').exec()
+  }
+
+  async run ({ server, peer }) {
+    await server.run()
+    await peer.run()
   }
 })

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "importHelpers": true,
+    "strict": true,
+    "sourceMap": true
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}
