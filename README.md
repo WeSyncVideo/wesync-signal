@@ -37,8 +37,16 @@ API
 ```
 const Server = require('wesync-signal/server')
 
-const server = new Server().listen()
+const opts = {
+  port: 3030
+}
+
+const server = new Server(opts).listen()
 ```
+
+### Options
+
+- `port?: number` - Port to listen on (default TODO:)
 
 ## Client
 
@@ -66,7 +74,7 @@ new Peer({
 
   // Open channel with other users
   peer
-    .channel('416ac246-e7ac-49ff-93b4-f7e94d997e6b')
+    .openChannel('416ac246-e7ac-49ff-93b4-f7e94d997e6b')
     .catch(err => {
 
     })
@@ -85,7 +93,7 @@ peer
   })
 
 // Peer
-peer.offer(
+peer.createOffer(
   '109156be-c4fb-41ea-b1b4-efe1671c5836',
   offerPayload,
   responsePayload => {
