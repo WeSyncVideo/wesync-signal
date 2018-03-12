@@ -91,23 +91,6 @@ peer
   .then(uuid => {
     // UUID for peer
   })
-
-// Peer
-peer.createOffer(
-  '109156be-c4fb-41ea-b1b4-efe1671c5836',
-  offerPayload,
-  responsePayload => {
-    // response callback may be called multiple times (up to host)
-    // Used to renegotiate
-  }
-)
-
-// Host
-peer
-  .on('offer', (offerPayload, respond) => {
-    // May call respond more than once (renegotiate)
-    respond(responsePayload)
-  })
 ```
 
 ### Options

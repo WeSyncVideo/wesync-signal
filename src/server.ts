@@ -1,8 +1,16 @@
+/*
+ * Terminology
+ * ===========
+ *
+ * Inducer - The peer who initiates a channel between two peers
+ * Target - A peer who is the target of the inducer
+ */
+
 import * as io from 'socket.io'
 import * as http from 'http'
 import * as uuidv4 from 'uuid/v4'
 
-import { bind } from './utils'
+import { bind, createError } from './utils'
 
 type Socket = SocketIO.Socket
 
@@ -14,7 +22,6 @@ interface ServerOptions {
 }
 
 interface Peer {
-  uuid: string
   socket: Socket
 }
 
@@ -26,7 +33,7 @@ class Server {
   private io: SocketIO.Server | null
   private _port: number
   private _ioOpts: SocketIO.ServerOptions
-  private _peers: Peers;
+  private _peers: Peers
 
   constructor ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
     // Bindings
@@ -53,19 +60,31 @@ class Server {
     socket.on('handshake', this._onHandshake)
   }
 
-  private _onHandshake (uuid: string, socket: Socket) {
+  private _onHandshake (inducerUuid: string, socket: Socket) {
+    if (!inducerUuid) throw new Error('invalid id')
 
+    if (!this._peers[inducerUuid]) {
+      this._peers[inducerUuid] = { socket }
+    }
+
+    socket.on('channel', targetUuid => this._onChannel(inducerUuid, targetUuid, socket))
   }
 
-  private _onChannel (uuid: string, socket: Socket) {
-    if (!uuid) throw new Error('invalid id')
-
-    if (!this._peers[uuid]) {
-      this._peers[uuid] = { uuid, socket }
+  private _onChannel (inducerUuid: string, targetUuid: string, inducerSocket: Socket) {
+    // TODO: Shouldn't need the target uuid after this point (pass socket to handlers)
+    const toSocket = this._peers[targetUuid]
+    if (!toSocket) {
+      const err = createError('no_such_peer', 'The peer you requested does not exist')
+      inducerSocket.emit('error', err)
     }
   }
 
-  private _onOffer () {
+  /**
+   * Offers are messages sent from the initiator
+   *
+   *
+   */
+  private _onOffer (targetSocket: Socket) {
 
   }
 
