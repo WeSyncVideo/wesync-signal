@@ -2,6 +2,7 @@
   "extends": "tslint-config-standard",
   "rules": {
     "trailing-comma": true,
-    "semicolon": [true, "never"]
+    "semicolon": [true, "never"],
+    "one-variable-per-declaration": false
   }
 }

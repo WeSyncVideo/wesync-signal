@@ -9,6 +9,7 @@
 import * as io from 'socket.io'
 import * as http from 'http'
 import * as uuidv4 from 'uuid/v4'
+import { Observable } from 'rxjs/Observable'
 
 import { bind, createError } from './utils'
 
@@ -29,7 +30,49 @@ interface Peers {
   [key: string]: Peer
 }
 
-class Server {
+function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
+  const httpServer = http.createServer()
+  const peers: Peers = {}
+
+  io(httpServer, ioOpts).on('connect', function (inducerSocket) {
+    inducerSocket.on('handshake', function (inducerUuid) {
+
+      peers[inducerUuid] = { socket: inducerSocket }
+
+      inducerSocket.on('disconnect', function () {
+        delete peers[inducerUuid]
+      })
+
+      inducerSocket.on('channel', function (targetUuid) {
+        const targetSocket = peers[targetUuid]
+        if (!targetSocket) {
+          inducerSocket.emit(
+            'error',
+            createError('no_such_peer', `the peer '${targetUuid}' does not exist`),
+          )
+
+          return
+        }
+
+        inducerSocket.on('message', function (data) {
+          const { payload, event } = data
+          if (!data || !event) {
+            inducerSocket.emit(
+              'error',
+              createError('invalid_message', `emit must have 'payload' and 'event' properties`)
+            )
+          }
+        })
+      })
+    })
+  })
+
+  httpServer.listen(port, function () {
+    console.log(`socket.io server listening on http://localhost:${port}`)
+  })
+}
+
+class Test {
   private io: SocketIO.Server | null
   private _port: number
   private _ioOpts: SocketIO.ServerOptions

@@ -89,7 +89,7 @@ context(class {
 
   createBundle (fuse, name) {
     const bundle = fuse.bundle(name)
-      .instructions(` > ${name}.ts`)
+      .instructions(` > [${name}.ts]`)
 
     return bundle
   }
