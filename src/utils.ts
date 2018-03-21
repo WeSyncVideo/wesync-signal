@@ -1,17 +1,4 @@
-type ErrorType
-  = 'timeout'
-  | 'no_such_peer'
-  | 'invalid_message'
-
-export interface Error {
-  type: ErrorType
-  message: string
-}
-
-export interface Message {
-  event: string
-  payload: any
-}
+import { ErrorType, Message } from './types'
 
 export function bind<T extends Function> (fn: T, context: any): T {
   return function (...args: any[]) {
@@ -19,8 +6,11 @@ export function bind<T extends Function> (fn: T, context: any): T {
   } as any
 }
 
-export function createError (type: ErrorType, message: string): Error {
-  return { type, message }
+export function createError (type: ErrorType, message?: string): Error {
+  return {
+    type,
+    ...message && { message },
+  }
 }
 
 export function createMessage (event: string, payload: any): Message {

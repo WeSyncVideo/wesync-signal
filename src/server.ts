@@ -9,13 +9,14 @@
 import * as io from 'socket.io'
 import * as http from 'http'
 import * as uuidv4 from 'uuid/v4'
-import { Observable } from 'rxjs/Observable'
 
 import { bind, createError } from './utils'
 
 type Socket = SocketIO.Socket
 
 const DEFAULT_PORT = 3030
+
+const first = 0, second = 1
 
 interface ServerOptions {
   port?: number
@@ -26,44 +27,86 @@ interface Peer {
   socket: Socket
 }
 
+interface Channel {
+  participants: [string, string]
+}
+
 interface Peers {
   [key: string]: Peer
+}
+
+interface Channels {
+  [key: string]: Channel
 }
 
 function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
   const httpServer = http.createServer()
   const peers: Peers = {}
+  const channels: Channels = {}
 
   io(httpServer, ioOpts).on('connect', function (inducerSocket) {
-    inducerSocket.on('handshake', function (inducerUuid) {
 
+    /**
+     * Called when a new peer registers with signal server
+     */
+    inducerSocket.on('register', function () {
+      let inducerUuid: string
+      do {
+        inducerUuid = uuidv4()
+      } while (peers[inducerUuid])
       peers[inducerUuid] = { socket: inducerSocket }
 
+      /**
+       * Called when inducer attempts to create a channel
+       */
+      inducerSocket.on('create_channel', function ({ uuid: targetUuid }) {
+        if (!peers[targetUuid]) {
+          inducerSocket.emit('no_such_peer', `no such peer with uuid '${targetUuid}'`)
+        }
+        const { socket: targetSocket } = peers[targetUuid]
+        { let channelUuid: string
+          do {
+            channelUuid = uuidv4()
+          } while (channels[channelUuid])
+          channels[channelUuid] = {
+            participants: [inducerUuid, targetUuid]
+          }
+
+          inducerSocket.emit('channel_created', { uuid: channelUuid })
+          targetSocket.emit('new_channel', { uuid: channelUuid })
+        }
+      })
+
+      /**
+       * Called when inducer attempts to send a message to a channel
+       */
+      inducerSocket.on('send_message', function ({ channelUuid, event, payload }) {
+        const channel = channels[channelUuid]
+        if (!channel) {
+          return void inducerSocket.emit('error', createError('no_such_channel', `no such channel with uuid '${channelUuid}'`))
+        }
+        if (!event || !payload) {
+          return void inducerSocket.emit('error', createError('invalid_message', "message must have 'event' and 'payload'"))
+        }
+        const { participants } = channel
+        const targetUuid = participants[first] === inducerUuid ? participants[second] : participants[first]
+        const targetPeer = peers[targetUuid]
+        if (!targetPeer) {
+          return void inducerSocket.emit('error', createError('no_such_peer', `no such peer with uuid ${targetUuid}`))
+        }
+        const { socket: targetSocket } = targetPeer
+        targetSocket.emit('get_message', { channelUuid, event, payload })
+      })
+
+      /**
+       * Called when peer disconnects, remove them from pool
+       */
       inducerSocket.on('disconnect', function () {
         delete peers[inducerUuid]
       })
 
-      inducerSocket.on('channel', function (targetUuid) {
-        const targetSocket = peers[targetUuid]
-        if (!targetSocket) {
-          inducerSocket.emit(
-            'error',
-            createError('no_such_peer', `the peer '${targetUuid}' does not exist`),
-          )
-
-          return
-        }
-
-        inducerSocket.on('message', function (data) {
-          const { payload, event } = data
-          if (!data || !event) {
-            inducerSocket.emit(
-              'error',
-              createError('invalid_message', `emit must have 'payload' and 'event' properties`)
-            )
-          }
-        })
-      })
+      // Inform peer they have registered and give them their uuid
+      inducerSocket.emit('registered', { uuid: inducerUuid })
     })
   })
 
@@ -72,70 +115,4 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
   })
 }
 
-class Test {
-  private io: SocketIO.Server | null
-  private _port: number
-  private _ioOpts: SocketIO.ServerOptions
-  private _peers: Peers
-
-  constructor ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
-    // Bindings
-    this.listen = bind(this.listen, this)
-    this._onConnect = bind(this._onConnect, this)
-
-    // Init
-    this._port = port
-    this._ioOpts = ioOpts
-    this.io = null
-    this._peers = {}
-  }
-
-  public listen () {
-    if (!this.io) {
-      const httpServer = http.createServer()
-      this.io = io(httpServer, this._ioOpts)
-      httpServer.listen(this._port)
-      httpServer.on('connect', this._onConnect)
-    }
-  }
-
-  private _onConnect (socket: Socket) {
-    socket.on('handshake', this._onHandshake)
-  }
-
-  private _onHandshake (inducerUuid: string, socket: Socket) {
-    if (!inducerUuid) throw new Error('invalid id')
-
-    if (!this._peers[inducerUuid]) {
-      this._peers[inducerUuid] = { socket }
-    }
-
-    socket.on('channel', targetUuid => this._onChannel(inducerUuid, targetUuid, socket))
-  }
-
-  private _onChannel (inducerUuid: string, targetUuid: string, inducerSocket: Socket) {
-    // TODO: Shouldn't need the target uuid after this point (pass socket to handlers)
-    const toSocket = this._peers[targetUuid]
-    if (!toSocket) {
-      const err = createError('no_such_peer', 'The peer you requested does not exist')
-      inducerSocket.emit('error', err)
-    }
-  }
-
-  /**
-   * Offers are messages sent from the initiator
-   *
-   *
-   */
-  private _onOffer (targetSocket: Socket) {
-
-  }
-
-  private _onResponse () {
-
-  }
-}
-
-new Server().listen()
-
-module.exports = Server
+export default listen
