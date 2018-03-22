@@ -1,4 +1,4 @@
-import { ErrorType, Message } from './types'
+import { SignalError, ErrorType, Message } from './types'
 
 export function bind<T extends Function> (fn: T, context: any): T {
   return function (...args: any[]) {
@@ -6,7 +6,7 @@ export function bind<T extends Function> (fn: T, context: any): T {
   } as any
 }
 
-export function createError (type: ErrorType, message?: string): Error {
+export function createError (type: ErrorType, message?: string): SignalError {
   return {
     type,
     ...message && { message },
@@ -23,9 +23,9 @@ export function createMessage (event: string, payload: any): Message {
  * @param message The message to be sent
  *
  * @return {false} if valid message
- * @return {Error} If invalid message
+ * @return {SignalError} If invalid message
  */
-export function validateMessage (message: Message): Error | false {
+export function validateMessage (message: Message): SignalError | false {
   const errType = 'invalid_message'
   const { event } = message
 

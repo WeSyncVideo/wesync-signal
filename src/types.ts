@@ -5,7 +5,7 @@ export type ErrorType
   | 'protocol_error'
   | 'no_such_channel'
 
-export interface Error {
+export interface SignalError {
   type: ErrorType
   message?: string
 }
