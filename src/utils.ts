@@ -1,4 +1,5 @@
 import { SignalError, ErrorType, Message } from './types'
+import * as R from 'ramda'
 
 export function bind<T extends Function> (fn: T, context: any): T {
   return function (...args: any[]) {
@@ -39,3 +40,19 @@ export function validateMessage (message: Message): SignalError | false {
 
   return false
 }
+
+export const removeFirstBy = R.curry(function<T> (by: R.Predicate<T>, list: T[]) {
+  return R.remove(
+    R.findIndex(by)(list),
+    1,
+  )(list)
+})
+
+export const omitFirstBy = R.curry<any>(function<T> (by: R.Predicate<T>, obj: Record<string, T>) {
+  return R.pipe(
+    R.findIndex(by),
+    v => [v],
+    // TODO: Fix type safety
+    (R.omit as any)((R.__), obj)
+  )
+})

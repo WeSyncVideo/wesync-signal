@@ -9,8 +9,9 @@
 import * as io from 'socket.io'
 import * as http from 'http'
 import * as uuidv4 from 'uuid/v4'
+import * as R from 'ramda'
 
-import { bind, createError } from './utils'
+import { bind, createError, removeFirstBy, omitFirstBy } from './utils'
 
 type Socket = SocketIO.Socket
 
@@ -27,8 +28,10 @@ interface Peer {
   socket: Socket
 }
 
+type Participants = [string, string]
+
 interface Channel {
-  participants: [string, string]
+  participants: Participants
 }
 
 interface Peers {
@@ -40,9 +43,9 @@ interface Channels {
 }
 
 function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
+  let peers: Peers = {}
+  let channels: Channels = {}
   const httpServer = http.createServer()
-  const peers: Peers = {}
-  const channels: Channels = {}
 
   io(httpServer, ioOpts).on('connect', function (inducerSocket) {
 
@@ -102,7 +105,10 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
        * Called when peer disconnects, remove them from pool
        */
       inducerSocket.on('disconnect', function () {
-        delete peers[inducerUuid]
+        peers = R.omit([inducerUuid])(peers)
+        channels = omitFirstBy(
+          ([first, second]: Participants) => first === inducerUuid || second === inducerUuid,
+        )(channels)
       })
 
       // Inform peer they have registered and give them their uuid
@@ -113,6 +119,8 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
   httpServer.listen(port, function () {
     console.log(`socket.io server listening on http://localhost:${port}`)
   })
+
+  return httpServer
 }
 
 export default listen

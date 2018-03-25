@@ -11,29 +11,41 @@ interface PeerOptions {
 
 type PeerEvent = 'channel' | 'error'
 
+type ErrorListener = Listener<SignalError>
+type ChannelListener = Listener<Channel>
+type PeerListener
+  = ErrorListener
+  | ChannelListener
+
+type OnError = (this: PeerInstance, ev: 'error', fn: ErrorListener) => void
+type OnChannel = (this: PeerInstance, ev: 'channel', fn: ChannelListener) => void
 type OnPeer
-  = ((this: PeerInstance, ev: 'error', fn: (err: SignalError) => void) => void)
-  | ((this: PeerInstance, ev: 'channel', fn: (channel: Channel) => void) => void)
+  = OnError
+  | OnChannel
+
+type RemoveErrorListener = (this: PeerInstance, ev: 'error', fn: ErrorListener) => void
+type RemoveChannelListener = (this: PeerInstance, ev: 'channel', fn: ChannelListener) => void
+type RemoveListener
+  = RemoveErrorListener
+  | RemoveChannelListener
 
 interface PeerInstance {
   uuid: string
   on: OnPeer
+  removeListener: RemoveListener
+  _peerListeners: ListenerMap
   openChannel (uuid: string): Promise<Channel>
 }
 
 type Listener<T> = (payload: T) => void
 
-interface MessageMap {
-  [key: string]: Message[]
-}
+type MessageMap = Record<string, Message>
 
-interface ListenerMap {
-  [key: string]: Listener<any>[]
-}
+type ListenerMap<KeyType extends string = string> = Record<KeyType, Listener<any>[]>
 
 interface Channel {
   _neglectedMessages: MessageMap
-  _listeners: ListenerMap
+  _listeners: ListenerMap<PeerEvent>
   emit<T> (ev: string, payload: T): void
   on<T> (ev: string, fn: (payload: T) => void): void
 }
@@ -64,8 +76,20 @@ function Peer (this: PeerInstance, options: PeerOptions) {
   })
 }
 
-Peer.prototype.on = function (event, fn) {
-  return {}
+Peer.prototype.on = function (this: PeerInstance, event: PeerEvent, fn: PeerListener) {
+  if (event !== 'error' && event !== 'channel') {
+    throw new Error(`no such event: ${event}`)
+  }
+
+  this._peerListeners[event] = R.append(fn)(this._peerListeners[event])
+}
+
+Peer.prototype.removeListener = function (this: PeerInstance, event: PeerEvent, fn: PeerListener) {
+  if (event !== 'error' && event !== 'channel') {
+    throw new Error(`no such event: ${event}`)
+  }
+
+  this._peerListeners[event] = R.without([fn])(this._peerListeners[event])
 }
 
 Peer.prototype.openChannel = function openChannel (this: PeerInstance) {
