@@ -12,35 +12,19 @@ import * as uuidv4 from 'uuid/v4'
 import * as R from 'ramda'
 
 import { bind, createError, removeFirstBy, omitFirstBy } from './utils'
-
-type Socket = SocketIO.Socket
+import {
+  Socket,
+  Channel,
+  ServerOptions,
+  Channels,
+  Participants,
+  Peer,
+  Peers,
+} from './types/server'
 
 const DEFAULT_PORT = 3030
 
 const first = 0, second = 1
-
-interface ServerOptions {
-  port?: number
-  ioOpts?: SocketIO.ServerOptions
-}
-
-interface Peer {
-  socket: Socket
-}
-
-type Participants = [string, string]
-
-interface Channel {
-  participants: Participants
-}
-
-interface Peers {
-  [key: string]: Peer
-}
-
-interface Channels {
-  [key: string]: Channel
-}
 
 function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
   let peers: Peers = {}
@@ -75,7 +59,18 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
             participants: [inducerUuid, targetUuid]
           }
 
-          inducerSocket.emit('channel_created', { uuid: channelUuid })
+          targetSocket.on('new_channel_ack', function (err: string) {
+            if (err) {
+              inducerSocket.emit(`${targetUuid}_channel_not_created`, err)
+              // TODO: Don't mutate channels
+              delete channels[channelUuid]
+              // TODO: Clean up channels when peer disconnects
+            } else {
+              inducerSocket.emit('channel_created', { uuid: channelUuid })
+            }
+          })
+
+          // Inform the target that a channel has been created
           targetSocket.emit('new_channel', { uuid: channelUuid })
         }
       })

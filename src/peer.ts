@@ -2,55 +2,27 @@ import * as io from 'socket.io-client'
 import * as R from 'ramda'
 
 import { bind } from './utils'
-import { SignalError, Message } from './types'
-
-interface PeerOptions {
-  host: string
-  port?: number
-}
-
-type PeerEvent = 'channel' | 'error'
-
-type ErrorListener = Listener<SignalError>
-type ChannelListener = Listener<Channel>
-type PeerListener
-  = ErrorListener
-  | ChannelListener
-
-type OnError = (this: PeerInstance, ev: 'error', fn: ErrorListener) => void
-type OnChannel = (this: PeerInstance, ev: 'channel', fn: ChannelListener) => void
-type OnPeer
-  = OnError
-  | OnChannel
-
-type RemoveErrorListener = (this: PeerInstance, ev: 'error', fn: ErrorListener) => void
-type RemoveChannelListener = (this: PeerInstance, ev: 'channel', fn: ChannelListener) => void
-type RemoveListener
-  = RemoveErrorListener
-  | RemoveChannelListener
-
-interface PeerInstance {
-  uuid: string
-  on: OnPeer
-  removeListener: RemoveListener
-  _peerListeners: ListenerMap
-  openChannel (uuid: string): Promise<Channel>
-}
-
-type Listener<T> = (payload: T) => void
-
-type MessageMap = Record<string, Message>
-
-type ListenerMap<KeyType extends string = string> = Record<KeyType, Listener<any>[]>
-
-interface Channel {
-  _neglectedMessages: MessageMap
-  _listeners: ListenerMap<PeerEvent>
-  emit<T> (ev: string, payload: T): void
-  on<T> (ev: string, fn: (payload: T) => void): void
-}
-
-type Reject = (err: SignalError) => void
+import { SignalError, Message } from './types/shared'
+import {
+  Channel,
+  ChannelListener,
+  ErrorListener,
+  Listener,
+  ListenerMap,
+  MessageMap,
+  OnChannel,
+  OnError,
+  OnPeer,
+  PeerEvent,
+  PeerInstance,
+  PeerListener,
+  PeerOptions,
+  Reject,
+  RemoveChannelListener,
+  RemoveErrorListener,
+  RemoveListener,
+  Socket,
+} from './types/peer'
 
 function Peer (this: PeerInstance, options: PeerOptions) {
   // Bindings
@@ -59,19 +31,19 @@ function Peer (this: PeerInstance, options: PeerOptions) {
 
   return new Promise<typeof this>((resolve, reject: Reject) => {
     // Connect to server
-    const socket = io(`${options.host}${maybePort(options.port)}`)
+    this._socket = io(`${options.host}${stringifyMaybePort(options.port)}`)
 
-    socket.on('connect_error', () => reject({
+    this._socket.on('connect_error', () => reject({
       type: 'timeout',
       message: 'failed to connect to signal server',
     }))
 
-    socket.on('connect', () => {
-      socket.on('registered', (peerUuid: string) => {
+    this._socket.on('connect', () => {
+      this._socket.on('registered', ({ uuid: peerUuid }: { uuid: string }) => {
         this.uuid = peerUuid
         resolve(this)
       })
-      socket.emit('register')
+      this._socket.emit('register')
     })
   })
 }
@@ -92,14 +64,19 @@ Peer.prototype.removeListener = function (this: PeerInstance, event: PeerEvent, 
   this._peerListeners[event] = R.without([fn])(this._peerListeners[event])
 }
 
-Peer.prototype.openChannel = function openChannel (this: PeerInstance) {
+Peer.prototype.openChannel = function openChannel (this: PeerInstance, targetUuid: string) {
   return new Promise<Channel>((resolve, reject: Reject) => {
-
+    this._socket.on('channel_created', function ({ uuid: channelUuid }: { uuid: string }) {
+      // TODO: Create channel
+    })
+    this._socket.emit('create_channel', { uuid: targetUuid })
   })
 }
 
-function maybePort (port?: number) {
-  return typeof port === 'undefined' ? '' : `:${port}`
+function stringifyMaybePort (port?: number) {
+  return typeof port === 'number'
+    ? `:${port}`
+    : ''
 }
 
 export default Peer
