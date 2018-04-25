@@ -1,4 +1,4 @@
-import { SignalError, ErrorType, Message } from './types'
+import { SignalError, ErrorType, Message } from './types/shared'
 import * as R from 'ramda'
 
 export function bind<T extends Function> (fn: T, context: any): T {

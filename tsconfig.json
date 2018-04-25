@@ -5,6 +5,7 @@
     "importHelpers": true,
     "strict": true,
     "sourceMap": true,
+    "rootDir": ".",
     "lib": [
       "es2015"
     ]
