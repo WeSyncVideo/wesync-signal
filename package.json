@@ -1,6 +1,6 @@
 {
   "name": "wesync-signal",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Signal server for WeSync Video Platform",
   "main": "src/index.js",
   "repository": "https://github.com/WeSyncVideo/wesync-signal.git",

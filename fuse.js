@@ -1,4 +1,4 @@
-const { src, context, task, tsc } = require('fuse-box/sparky')
+const { src, context, task, tsc, bumpVersion, npmPublish } = require('fuse-box/sparky')
 const { FuseBox, QuantumPlugin, EnvPlugin } = require('fuse-box')
 const TypeHelper = require('fuse-box-typechecker').TypeHelper
 const path = require('path')
@@ -16,18 +16,58 @@ task('test', async context => {
   throw new Error('not implmented yet')
 })
 
-task('publish', async context => {
-  await context.cleanDist()
-  context.isProduction = true
+task('clean', async context => {
+  await Promise.all([
+    context.cleanDist(),
+    context.cleanTemp(),
+  ])
+})
+
+task('buildJavascript', async context => {
   const { server, peer } = context.getConfigs()
   context.createBundles({ server, peer })
   await context.run({ server, peer })
+})
+
+task('buildDeclarations', async context => {
   await context.compileDeclarations()
   await context.moveDeclarations()
-  await context.cleanTemp()
+})
+
+task('moveRootFiles', async context => {
   await context.moveIndex()
   await context.moveDeclarationIndex()
+  await context.movePackageJson()
 })
+
+task('setProduction', async context => {
+  context.isProduction = true
+})
+
+task('prepublish', [
+  'setProduction',
+  'clean',
+  'buildJavascript',
+  'buildDeclarations',
+])
+
+task('publishNpm', async context => {
+  await context.publish()
+})
+
+task('postPublish', [
+  'moveRootFiles',
+  'publishNpm',
+  'clean',
+])
+
+task('bumpMajor', async context => await context.bumpVersion('major'))
+task('bumpMinor', async context => await context.bumpVersion('minor'))
+task('bumpPatch', async context => await context.bumpVersion('patch'))
+
+task('publishPatch', ['prepublish', 'bumpPatch', 'postPublish'])
+task('publishMinor', ['prepublish', 'bumpMinor', 'postPublish'])
+task('publishMajor', ['prepublish', 'bumpMajor', 'postPublish'])
 
 context(class {
 
@@ -133,9 +173,6 @@ context(class {
     })
   }
 
-  /**
-   * TODO: Figure out how to move the types into dist/ correctly
-   */
   async moveDeclarations () {
     const { moveTempFile } = this
     const moveTypes = src('temp/src/types/**/**.d.ts')
@@ -166,8 +203,22 @@ context(class {
       .exec()
   }
 
+  async movePackageJson () {
+    return src('./package.json')
+      .dest('dist/')
+      .exec()
+  }
+
+  async bumpVersion (type) {
+    await bumpVersion('package.json', { type })
+  }
+
   async run ({ server, peer }) {
     await server.run()
     await peer.run()
+  }
+
+  async publish () {
+    await npmPublish({ path: 'dist' });
   }
 })
