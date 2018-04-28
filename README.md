@@ -19,14 +19,14 @@ Importing
 
 ```
 // Require
-const { Server, Peer } = require('wesync-signal')
-const Server = require('wesync-signal/server')
-const Peer = require('wesync-signal/peer')
+const { listen, Peer } = require('wesync-signal')
+const { listen } = require('wesync-signal/server')
+const { Peer } = require('wesync-signal/peer')
 
 // ES6 Modules
 import { Server, Peer } from 'wesync-signal'
-import Server from 'wesync-signal/server'
-import Peer from 'wesync-signal/peer'
+import { listen } from 'wesync-signal/server'
+import { Peer } from 'wesync-signal/peer'
 ```
 
 API
@@ -35,7 +35,7 @@ API
 ## Server
 
 ```
-const Server = require('wesync-signal/server')
+const { listen } = require('wesync-signal/server')
 
 const opts = {
   port: 3030
@@ -52,7 +52,7 @@ const server = new Server(opts).listen()
 
 ```
 // Both
-const Peer = require('wesync-signal/peer')
+const { Peer } = require('wesync-signal/peer')
 
 new Peer({
   host: 'http://signalserverhost.com',  // Example host

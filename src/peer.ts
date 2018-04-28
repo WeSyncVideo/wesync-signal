@@ -24,7 +24,7 @@ import {
   Socket,
 } from './types/peer'
 
-function Peer (this: PeerInstance, options: PeerOptions) {
+export function Peer (this: PeerInstance, options: PeerOptions) {
   // Bindings
   this.on = bind(this.on, this)
   this.openChannel = bind(this.openChannel, this)
@@ -78,5 +78,3 @@ function stringifyMaybePort (port?: number) {
     ? `:${port}`
     : ''
 }
-
-export default Peer

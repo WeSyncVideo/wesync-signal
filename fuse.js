@@ -25,6 +25,8 @@ task('publish', async context => {
   await context.compileDeclarations()
   await context.moveDeclarations()
   await context.cleanTemp()
+  await context.moveIndex()
+  await context.moveDeclarationIndex()
 })
 
 context(class {
@@ -131,10 +133,13 @@ context(class {
     })
   }
 
+  /**
+   * TODO: Figure out how to move the types into dist/ correctly
+   */
   async moveDeclarations () {
     const { moveTempFile } = this
-    const moveTypes = src('temp/src/types/**/**')
-      .dest('dist')
+    const moveTypes = src('temp/src/types/**/**.d.ts')
+      .dest('dist/types/$name')
       .exec()
     return Promise.all([
       moveTempFile('server.d.ts'),
@@ -146,6 +151,18 @@ context(class {
   async moveTempFile (name) {
     return src(`temp/src/${name}`)
       .dest('dist/$name')
+      .exec()
+  }
+
+  async moveIndex () {
+    return src('./index.js')
+      .dest('dist/')
+      .exec()
+  }
+
+  async moveDeclarationIndex () {
+    return src('./index.d.ts')
+      .dest('dist/')
       .exec()
   }
 

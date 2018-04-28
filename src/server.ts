@@ -26,7 +26,7 @@ const DEFAULT_PORT = 3030
 
 const first = 0, second = 1
 
-function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
+export function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
   let peers: Peers = {}
   let channels: Channels = {}
   const httpServer = http.createServer()
@@ -117,5 +117,3 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
 
   return httpServer
 }
-
-export default listen
