@@ -13,7 +13,7 @@ task('default', async context => {
 })
 
 task('test', async context => {
-  throw new Error('not implmented yet')
+  throw new Error('not implemented yet')
 })
 
 task('clean', async context => {
@@ -219,6 +219,6 @@ context(class {
   }
 
   async publish () {
-    await npmPublish({ path: 'dist' });
+    await npmPublish({ path: 'dist' })
   }
 })

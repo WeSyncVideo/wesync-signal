@@ -9,6 +9,7 @@ export type ErrorType
   | 'invalid_message'
   | 'protocol_error'
   | 'no_such_channel'
+  | 'server_error'
 
 /**
  * TODO: Documentation

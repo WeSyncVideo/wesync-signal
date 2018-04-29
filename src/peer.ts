@@ -73,6 +73,11 @@ Peer.prototype.openChannel = function openChannel (this: PeerInstance, targetUui
   })
 }
 
+/**
+ * Stringify a possible port
+ *
+ * @param port conditional port to stringify
+ */
 function stringifyMaybePort (port?: number) {
   return typeof port === 'number'
     ? `:${port}`

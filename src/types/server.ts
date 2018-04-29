@@ -3,6 +3,8 @@
  */
 export interface Channel {
   participants: Participants
+  state: 'ready' | 'pending' | 'rejected' | 'accepted'
+  buffer: any[]
 }
 
 /**

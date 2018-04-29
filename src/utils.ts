@@ -1,6 +1,12 @@
 import { SignalError, ErrorType, Message } from './types/shared'
 import * as R from 'ramda'
 
+/**
+ * More performant version of bind (missing features)
+ *
+ * @param fn Function to bind context
+ * @param context Context for 'this'
+ */
 export function bind<T extends Function> (fn: T, context: any): T {
   return function (...args: any[]) {
     return fn.apply(context, args)
