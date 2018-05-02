@@ -10,6 +10,7 @@ export type ErrorType
   | 'protocol_error'
   | 'no_such_channel'
   | 'server_error'
+  | 'channel_already_exists'
 
 /**
  * TODO: Documentation
@@ -17,6 +18,10 @@ export type ErrorType
 export interface SignalError {
   type: ErrorType
   message?: string
+}
+
+export interface ChannelError extends SignalError {
+  channelId: string
 }
 
 /**
