@@ -1,10 +1,15 @@
+interface Message {
+  payload: any
+  event: string
+}
+
 /**
  * TODO: Documentation
  */
 export interface Channel {
   participants: Participants
   state: 'ready' | 'pending' | 'rejected' | 'accepted'
-  buffer: any[]
+  buffer: Message[]
 }
 
 /**
