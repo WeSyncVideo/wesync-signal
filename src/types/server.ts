@@ -3,12 +3,22 @@ interface Message {
   event: string
 }
 
+type ChannelState
+  // Channel has been initialized, but neither peer is aware of it's existence
+  = 'pending'
+  // The target peer has accepted the channel, unknown to the inducer
+  | 'accepted'
+  // The target peer has rejected the channel, unknown to the inducer
+  | 'rejected'
+  // The target peer has acccepted the channel, and the inducer is aware of this
+  | 'ready'
+
 /**
  * TODO: Documentation
  */
 export interface Channel {
   participants: Participants
-  state: 'ready' | 'pending' | 'rejected' | 'accepted'
+  state: ChannelState
   buffer: Message[]
 }
 

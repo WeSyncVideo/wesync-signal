@@ -3,6 +3,7 @@
   "rules": {
     "trailing-comma": true,
     "semicolon": [true, "never"],
-    "one-variable-per-declaration": false
+    "one-variable-per-declaration": false,
+    "strict-type-predicates": false
   }
 }

@@ -1,3 +1,1 @@
-var Server = require('./dist/server').Server
-
-module.exports = Server
+exports.Server = require('./dist/server').Server

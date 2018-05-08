@@ -11,8 +11,8 @@ import * as http from 'http'
 import * as uuidv4 from 'uuid/v4'
 import * as R from 'ramda'
 
-import { bind, removeFirstBy, omitFirstBy, createChannelError, getOtherUuid } from './utils'
-import { SignalError, ErrorType, ChannelError } from './types/shared'
+import { removeFirstBy, omitFirstBy, createChannelError, getOtherUuid, debug, createSignalError } from './utils'
+import { SignalError, ErrorType, ChannelError, Message } from './types/shared'
 import {
   Socket,
   Channel,
@@ -24,6 +24,8 @@ import {
 } from './types/server'
 
 const DEFAULT_PORT = 3030
+const INDUCER = 0
+const TARGET = 1
 
 /**
  * TODO:
@@ -96,32 +98,38 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
         const channel = channels[channelId]
         if (channel.state === 'accepted') {
           const { buffer } = channel
-          buffer.map(msg => socket.emit('message', { ...msg, channelId }))
+          buffer.map(message => socket.emit('message', { message, channelId }))
           channel.state = 'ready'
         }
       })
 
       // Called when peer attempts to send a message
-      socket.on('send_message', function ({ channelId, event, payload }) {
+      socket.on('send_message', function ({ channelId, message }: { channelId?: string, message?: Message }) {
+        if (!channelId) {
+          const error = createSignalError('invalid_request', 'channelId must be valid string')
+          return void socket.emit('error', error)
+        }
         const channel = channels[channelId]
         if (!channel) {
           const error = createChannelError(channelId, 'no_such_channel', `no such channel with uuid '${channelId}'`)
           return void socket.emit('error', error)
         }
-        if (!event || !payload) {
+        if (!message || !message.event || !message.payload) {
           const error = createChannelError(channelId, 'invalid_message', "message must have 'event' and 'payload'")
           return void socket.emit('error', error)
         }
         switch (channel.state) {
           case 'accepted': {
-
-          } break
-
-          case 'pending': {
-
+            // Should only occur with channel target, if so buffer messages
+            if (peerUuid === channel.participants[TARGET]) {
+              channel.buffer = R.append(message)(channel.buffer)
+            } else {
+              debug(`the inducer '${peerUuid}' attempted to send a message to channel before it is ready`)
+            }
           } break
 
           case 'ready': {
+            // Forward the message
             const { participants } = channel
             const targetUuid = getOtherUuid(peerUuid, participants)
             const targetPeer = peers[targetUuid]
@@ -130,11 +138,14 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
               return void socket.emit('error', error)
             }
             const { socket: targetSocket } = targetPeer
-            targetSocket.emit('message', { channelId, event, payload })
+            targetSocket.emit('message', { channelId, message })
           } break
 
-          case 'rejected': {
-
+          case 'rejected':
+          case 'pending':
+          default: {
+            // This should not occur, debug the occurance
+            debug(`'${peerUuid}' attempted to send message to '${channel.state}' channel '${channelId}'`)
           } break
         }
       })

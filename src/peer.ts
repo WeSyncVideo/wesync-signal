@@ -2,26 +2,13 @@ import * as io from 'socket.io-client'
 import * as R from 'ramda'
 
 import { bind } from './utils'
-import { SignalError, Message } from './types/shared'
 import {
   Channel,
-  ChannelListener,
-  ErrorListener,
-  Listener,
-  ListenerMap,
-  MessageMap,
-  OnChannel,
-  OnError,
-  OnPeer,
   PeerEvent,
   PeerInstance,
   PeerListener,
   PeerOptions,
   Reject,
-  RemoveChannelListener,
-  RemoveErrorListener,
-  RemoveListener,
-  Socket,
 } from './types/peer'
 
 export function Peer (this: PeerInstance, options: PeerOptions) {
@@ -39,8 +26,8 @@ export function Peer (this: PeerInstance, options: PeerOptions) {
     }))
 
     this._socket.on('connect', () => {
-      this._socket.on('registered', ({ uuid: peerUuid }: { uuid: string }) => {
-        this.uuid = peerUuid
+      this._socket.on('registered', ({ uuid }: { uuid: string }) => {
+        this.uuid = uuid
         resolve(this)
       })
       this._socket.emit('register')

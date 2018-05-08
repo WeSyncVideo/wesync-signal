@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 
-import { SignalError, ErrorType, Message, ChannelError } from './types/shared'
+import { SignalError, ErrorType, Message } from './types/shared'
 import { Participants } from './types/server'
 
 /**
@@ -32,11 +32,11 @@ export function validateMessage (message: Message): SignalError | false {
   const { event } = message
 
   if (!event) {
-    return createError(errType, 'missing event property on message signature')
+    return createSignalError(errType, 'missing event property on message signature')
   }
 
   if (typeof event !== 'string') {
-    return createError(errType, 'event is not a string')
+    return createSignalError(errType, 'event is not a string')
   }
 
   return false

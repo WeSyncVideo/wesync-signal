@@ -1,5 +1,3 @@
-type Reject = (err: SignalError) => void
-
 /**
  * TODO: Documentation
  */
@@ -11,6 +9,7 @@ export type ErrorType
   | 'no_such_channel'
   | 'server_error'
   | 'channel_already_exists'
+  | 'invalid_request'
 
 /**
  * TODO: Documentation
