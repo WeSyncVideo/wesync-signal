@@ -53,7 +53,7 @@ Peer.prototype.removeListener = function (this: PeerInstance, event: PeerEvent, 
 
 Peer.prototype.openChannel = function openChannel (this: PeerInstance, targetUuid: string) {
   return new Promise<Channel>((resolve, reject: Reject) => {
-    this._socket.on('channel_created', function ({ uuid: channelUuid }: { uuid: string }) {
+    this._socket.on('channel_created', function ({ uuid }: { uuid: string }) {
       // TODO: Create channel
     })
     this._socket.emit('create_channel', { uuid: targetUuid })

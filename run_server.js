@@ -1,3 +1,5 @@
-var Server = require('./server')
+var Server = require('./server').Server
+
+console.log(Server)
 
 Server.listen()

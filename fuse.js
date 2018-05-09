@@ -13,7 +13,11 @@ task('default', async context => {
 })
 
 task('test', async context => {
-  throw new Error('not implemented yet')
+  await context.cleanDist()
+  context.isProduction = false
+  const { server, peer } = context.getConfigs()
+  const bundles = context.createBundles({ server, peer })
+  context.test(bundles)
 })
 
 task('clean', async context => {
@@ -216,6 +220,11 @@ context(class {
   async run ({ server, peer }) {
     await server.run()
     await peer.run()
+  }
+
+  async test ({ serverBundle, peerBundle }) {
+    await serverBundle.test('[test/server/**/**.test.ts]')
+    await peerBundle.test('[test/peer/**/**.test.ts]')
   }
 
   async publish () {

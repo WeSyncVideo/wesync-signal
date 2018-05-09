@@ -11,21 +11,21 @@ import * as http from 'http'
 import * as uuidv4 from 'uuid/v4'
 import * as R from 'ramda'
 
-import { removeFirstBy, omitFirstBy, createChannelError, getOtherUuid, debug, createSignalError } from './utils'
-import { SignalError, ErrorType, ChannelError, Message } from './types/shared'
+import { omitFirstBy, createChannelError, getOtherUuid, debug, createSignalError } from './utils'
+import { SignalError, Message } from './types/shared'
 import {
-  Socket,
-  Channel,
   ServerOptions,
   Channels,
   Participants,
-  Peer,
   Peers,
 } from './types/server'
 
 const DEFAULT_PORT = 3030
-const INDUCER = 0
-const TARGET = 1
+
+enum PeerPosition {
+  INDUCER = 0,
+  TARGET = 1,
+}
 
 /**
  * TODO:
@@ -43,9 +43,7 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
     socket.on('register', function () {
       // Check if the peer is already registered
       if (peerUuid) {
-        const error: SignalError = {
-          type: 'server_error',
-        }
+        const error = createSignalError('server_error')
         return void socket.emit('error', error)
       }
       do {
@@ -121,7 +119,7 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
         switch (channel.state) {
           case 'accepted': {
             // Should only occur with channel target, if so buffer messages
-            if (peerUuid === channel.participants[TARGET]) {
+            if (peerUuid === channel.participants[PeerPosition.TARGET]) {
               channel.buffer = R.append(message)(channel.buffer)
             } else {
               debug(`the inducer '${peerUuid}' attempted to send a message to channel before it is ready`)
