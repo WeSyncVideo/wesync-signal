@@ -1,1 +1,1 @@
-exports.Server = require('./dist/server.js')
+exports.Server = require('./dist/server.js').Server

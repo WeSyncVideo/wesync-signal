@@ -1,4 +1,4 @@
-const { src, context, task, tsc, bumpVersion, npmPublish } = require('fuse-box/sparky')
+const { src, context, task, tsc, bumpVersion, npmPublish, exec } = require('fuse-box/sparky')
 const { FuseBox, QuantumPlugin, EnvPlugin } = require('fuse-box')
 const TypeHelper = require('fuse-box-typechecker').TypeHelper
 const path = require('path')
@@ -14,16 +14,9 @@ task('default', async context => {
   context.run({ serverConfig, peerConfig })
 })
 
-task('test', ['clean', 'buildJavascript'], async context => {
-  const mocha = new Mocha()
-  const pattern = 'test/**/**.test.js'
-  const files = await new Promise((resolve, reject) => {
-    glob(pattern, {},  (err, files) => (err && reject(err)) || resolve(files))
-  })
-  files
-    .map(f => path.resolve(f))
-    .forEach(f => mocha.addFile(f))
-  mocha.run()
+task('test', ['setProduction', 'clean', 'buildJavascript'], async context => {
+  await context.test()
+  await exec('clean')
 })
 
 task('clean', async context => {
@@ -124,7 +117,7 @@ context(class {
   }
 
   createPeerConfig () {
-    return this.merge(this.baseConfig('browser', 'peer'), {})
+    return this.merge(this.baseConfig('universal', 'peer'), {})
   }
 
   createServerConfig () {
@@ -155,6 +148,17 @@ context(class {
   async run ({ serverConfig, peerConfig }) {
     await serverConfig.run()
     await peerConfig.run()
+  }
+
+  async test () {
+    const mocha = new Mocha()
+    const pattern = 'test/**/**.test.js'
+    const files = await new Promise((resolve, reject) =>
+      glob(pattern, {},  (err, files) => (err && reject(err)) || resolve(files)))
+    files
+      .map(f => path.resolve(f))
+      .forEach(f => mocha.addFile(f))
+    return new Promise(resolve => mocha.run(() => resolve()))
   }
 
   async cleanDist () {

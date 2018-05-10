@@ -31,7 +31,7 @@ enum PeerPosition {
  * TODO:
  * @param opts
  */
-function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
+function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}, cb?: Function) {
   let peers: Peers = {}
   let channels: Channels = {}
   const httpServer = http.createServer()
@@ -161,7 +161,7 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}) {
     })
   })
 
-  httpServer.listen(port, function () {
+  httpServer.listen(port, cb || function () {
     console.log(`socket.io server listening on http://localhost:${port}`)
   })
 
