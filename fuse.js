@@ -2,22 +2,28 @@ const { src, context, task, tsc, bumpVersion, npmPublish } = require('fuse-box/s
 const { FuseBox, QuantumPlugin, EnvPlugin } = require('fuse-box')
 const TypeHelper = require('fuse-box-typechecker').TypeHelper
 const path = require('path')
+const Mocha = require('mocha')
+const glob = require('glob')
 
 task('default', async context => {
   await context.cleanDist()
   context.isProduction = false
   context.linter().runWatch('./src')
-  const { server, peer } = context.getConfigs()
-  context.createBundles({ server, peer })
-  context.run({ server, peer })
+  const { serverConfig, peerConfig } = context.createConfigs()
+  context.createInstructions({ serverConfig, peerConfig })
+  context.run({ serverConfig, peerConfig })
 })
 
-task('test', async context => {
-  await context.cleanDist()
-  context.isProduction = false
-  const { server, peer } = context.getConfigs()
-  const bundles = context.createBundles({ server, peer })
-  context.test(bundles)
+task('test', ['clean', 'buildJavascript'], async context => {
+  const mocha = new Mocha()
+  const pattern = 'test/**/**.test.js'
+  const files = await new Promise((resolve, reject) => {
+    glob(pattern, {},  (err, files) => (err && reject(err)) || resolve(files))
+  })
+  files
+    .map(f => path.resolve(f))
+    .forEach(f => mocha.addFile(f))
+  mocha.run()
 })
 
 task('clean', async context => {
@@ -28,9 +34,9 @@ task('clean', async context => {
 })
 
 task('buildJavascript', async context => {
-  const { server, peer } = context.getConfigs()
-  context.createBundles({ server, peer })
-  await context.run({ server, peer })
+  const { serverConfig, peerConfig } = context.createConfigs()
+  context.createInstructions({ serverConfig, peerConfig })
+  await context.run({ serverConfig, peerConfig })
 })
 
 task('buildDeclarations', async context => {
@@ -117,37 +123,38 @@ context(class {
     }
   }
 
-  peerConfig () {
-    return this.merge(this.baseConfig('browser', 'peer'), {
-
-    })
+  createPeerConfig () {
+    return this.merge(this.baseConfig('browser', 'peer'), {})
   }
 
-  serverConfig () {
-    return this.merge(this.baseConfig('server', 'server'), {
-
-    })
+  createServerConfig () {
+    return this.merge(this.baseConfig('server', 'server'), {})
   }
 
-  getConfigs () {
+  createConfigs () {
     return {
-      server: this.serverConfig(),
-      peer: this.peerConfig()
+      serverConfig: this.createServerConfig(),
+      peerConfig: this.createPeerConfig()
     }
   }
 
-  createBundle (fuse, name) {
-    const bundle = fuse.bundle(name)
+  createInstruction (config, name) {
+    const instruction = config.bundle(name)
       .instructions(` > [${name}.ts]`)
 
-    return bundle
+    return instruction
   }
 
-  createBundles ({ server, peer }) {
+  createInstructions ({ serverConfig, peerConfig }) {
     return {
-      serverBundle: this.createBundle(server, 'server'),
-      peerBundle: this.createBundle(peer, 'peer'),
+      serverInstruction: this.createInstruction(serverConfig, 'server'),
+      peerInstruction: this.createInstruction(peerConfig, 'peer'),
     }
+  }
+
+  async run ({ serverConfig, peerConfig }) {
+    await serverConfig.run()
+    await peerConfig.run()
   }
 
   async cleanDist () {
@@ -215,16 +222,6 @@ context(class {
 
   async bumpVersion (type) {
     await bumpVersion('package.json', { type })
-  }
-
-  async run ({ server, peer }) {
-    await server.run()
-    await peer.run()
-  }
-
-  async test ({ serverBundle, peerBundle }) {
-    await serverBundle.test('[test/server/**/**.test.ts]')
-    await peerBundle.test('[test/peer/**/**.test.ts]')
   }
 
   async publish () {

@@ -12,7 +12,7 @@ import * as uuidv4 from 'uuid/v4'
 import * as R from 'ramda'
 
 import { omitFirstBy, createChannelError, getOtherUuid, debug, createSignalError } from './utils'
-import { SignalError, Message } from './types/shared'
+import { Message } from './types/shared'
 import {
   ServerOptions,
   Channels,

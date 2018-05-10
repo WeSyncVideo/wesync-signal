@@ -1,3 +1,1 @@
-var Peer = require('./dist/peer').Peer
-
-module.exports = Peer
+exports.Peer = require('./dist/peer').Peer
