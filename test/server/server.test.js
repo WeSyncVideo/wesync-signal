@@ -13,7 +13,6 @@ describe('Server Tests', function () {
     })
 
     it('should start and stop server successfully', function (done) {
-      console.log(this.Server)
       const server = this.Server.listen(() => {
         server.close()
         done()

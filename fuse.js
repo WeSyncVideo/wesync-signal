@@ -7,14 +7,13 @@ const glob = require('glob')
 
 task('default', async context => {
   await context.cleanDist()
-  context.isProduction = false
   context.linter().runWatch('./src')
   const { serverConfig, peerConfig } = context.createConfigs()
   context.createInstructions({ serverConfig, peerConfig })
   context.run({ serverConfig, peerConfig })
 })
 
-task('test', ['setProduction', 'clean', 'buildJavascript'], async context => {
+task('test', ['clean', 'build'], async context => {
   await context.test()
   await exec('clean')
 })
@@ -26,7 +25,7 @@ task('clean', async context => {
   ])
 })
 
-task('buildJavascript', async context => {
+task('build', async context => {
   const { serverConfig, peerConfig } = context.createConfigs()
   context.createInstructions({ serverConfig, peerConfig })
   await context.run({ serverConfig, peerConfig })
@@ -43,14 +42,9 @@ task('moveRootFiles', async context => {
   await context.movePackageJson()
 })
 
-task('setProduction', async context => {
-  context.isProduction = true
-})
-
 task('prepublish', [
-  'setProduction',
   'clean',
-  'buildJavascript',
+  'build',
   'buildDeclarations',
 ])
 
@@ -96,6 +90,7 @@ context(class {
   baseConfig (target, name) {
     return {
       homeDir: 'src',
+      globals: { 'default': '*' }, // we need to expore index in our bundles
       output: 'dist/$name.js',
       cache: false,
       package: 'wesync-signal',
@@ -106,12 +101,12 @@ context(class {
         EnvPlugin({
           NODE_ENV: this.isProduction ? 'production' : 'development',
         }),
-        this.isProduction && QuantumPlugin({
-          uglify: true,
+        QuantumPlugin({
+          uglify: false,
           treeshake: true,
           target,
-          bakeApiIntoBundle: name
-        })
+          bakeApiIntoBundle: name,
+        }),
       ]
     }
   }
