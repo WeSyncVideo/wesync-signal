@@ -31,6 +31,14 @@ task('build', async context => {
   await context.run({ serverConfig, peerConfig })
 })
 
+task('publishPatch', ['prepublish', 'bumpPatch', 'postPublish'])
+task('publishMinor', ['prepublish', 'bumpMinor', 'postPublish'])
+task('publishMajor', ['prepublish', 'bumpMajor', 'postPublish'])
+
+task('setProduction', context => {
+  context.isProduction = true
+})
+
 task('buildDeclarations', async context => {
   await context.compileDeclarations()
   await context.moveDeclarations()
@@ -43,6 +51,7 @@ task('moveRootFiles', async context => {
 })
 
 task('prepublish', [
+  'setProduction',
   'clean',
   'build',
   'buildDeclarations',
@@ -61,10 +70,6 @@ task('postPublish', [
 task('bumpMajor', async context => await context.bumpVersion('major'))
 task('bumpMinor', async context => await context.bumpVersion('minor'))
 task('bumpPatch', async context => await context.bumpVersion('patch'))
-
-task('publishPatch', ['prepublish', 'bumpPatch', 'postPublish'])
-task('publishMinor', ['prepublish', 'bumpMinor', 'postPublish'])
-task('publishMajor', ['prepublish', 'bumpMajor', 'postPublish'])
 
 context(class {
 
@@ -102,8 +107,8 @@ context(class {
           NODE_ENV: this.isProduction ? 'production' : 'development',
         }),
         QuantumPlugin({
-          uglify: false,
-          treeshake: true,
+          uglify: !!this.isProduction,
+          treeshake: !!this.isProduction,
           target,
           bakeApiIntoBundle: name,
         }),
