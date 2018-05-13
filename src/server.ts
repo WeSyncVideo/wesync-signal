@@ -33,12 +33,12 @@ enum PeerPosition {
  * @param cb
  */
 function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}, cb?: Function) {
-  const c = {
+  const s = {
     peers: {} as Peers,
     channels: {} as Channels,
   }
   const httpServer = http.createServer()
-  ;(httpServer as any).__closure = c
+  ;(httpServer as any).__shroud = s
 
   io(httpServer, ioOpts).on('connect', function (socket) {
     let peerUuid: string = ''
@@ -52,52 +52,52 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}, cb?: 
       }
       do {
         peerUuid = uuidv4()
-      } while (c.peers[peerUuid])
-      c.peers[peerUuid] = { socket }
+      } while (s.peers[peerUuid])
+      s.peers[peerUuid] = { socket }
 
       socket.on('open_channel', function ({ targetUuid }) {
         const channelId = `${peerUuid}-${targetUuid}`
         // Check if target peer exists
-        if (!c.peers[targetUuid]) {
+        if (!s.peers[targetUuid]) {
           const error = createChannelError(channelId, 'no_such_peer', 'no such peer')
           return void socket.emit('error', error)
         }
         // Check if channel already exists
-        if (c.channels[channelId]) {
+        if (s.channels[channelId]) {
           const error = createChannelError(channelId, 'channel_already_exists')
           return void socket.emit('error', error)
         }
         // Create channel
-        c.channels[channelId] = {
+        s.channels[channelId] = {
           participants: [peerUuid, targetUuid],
           state: 'pending',
           buffer: [],
         }
 
         // Send channel offer to target
-        const { socket: targetSocket } = c.peers[targetUuid]
+        const { socket: targetSocket } = s.peers[targetUuid]
         targetSocket.emit('offer_channel', { channelId })
       })
 
       // Called when receiving response from target
       socket.on('target_channel_ack', function ({ channelId, accepted }: { channelId: string, accepted: boolean }) {
-        if (!c.channels[channelId]) {
+        if (!s.channels[channelId]) {
           const error = createChannelError(channelId, 'no_such_channel')
           return void socket.emit('error', error)
         }
-        const inducerUuid = getOtherUuid(peerUuid, c.channels[channelId].participants)
-        const { socket: inducerSocket } = c.peers[inducerUuid]
-        c.channels[channelId].state = accepted ? 'accepted' : 'rejected'
+        const inducerUuid = getOtherUuid(peerUuid, s.channels[channelId].participants)
+        const { socket: inducerSocket } = s.peers[inducerUuid]
+        s.channels[channelId].state = accepted ? 'accepted' : 'rejected'
         inducerSocket.emit('response', { channelId, accepted })
       })
 
       // Called when the peer acknowledges channel creation
       socket.on('inducer_channel_ack', function ({ channelId }) {
-        if (!c.channels[channelId]) {
+        if (!s.channels[channelId]) {
           const error = createChannelError(channelId, 'no_such_channel')
           return void socket.emit('error', error)
         }
-        const channel = c.channels[channelId]
+        const channel = s.channels[channelId]
         if (channel.state === 'accepted') {
           const { buffer } = channel
           buffer.map(message => socket.emit('message', { message, channelId }))
@@ -111,7 +111,7 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}, cb?: 
           const error = createSignalError('invalid_request', 'channelId must be valid string')
           return void socket.emit('error', error)
         }
-        const channel = c.channels[channelId]
+        const channel = s.channels[channelId]
         if (!channel) {
           const error = createChannelError(channelId, 'no_such_channel', `no such channel with uuid '${channelId}'`)
           return void socket.emit('error', error)
@@ -134,7 +134,7 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}, cb?: 
             // Forward the message
             const { participants } = channel
             const targetUuid = getOtherUuid(peerUuid, participants)
-            const targetPeer = c.peers[targetUuid]
+            const targetPeer = s.peers[targetUuid]
             if (!targetPeer) {
               const error = createChannelError(channelId, 'no_such_peer', `no such peer with uuid ${targetUuid}`)
               return void socket.emit('error', error)
@@ -154,10 +154,10 @@ function listen ({ port = DEFAULT_PORT, ioOpts = {} }: ServerOptions = {}, cb?: 
 
       // Called when peer disconnects, remove them from pool
       socket.on('disconnect', function () {
-        c.peers = R.omit([peerUuid])(c.peers)
-        c.channels = omitFirstBy(
+        s.peers = R.omit([peerUuid])(s.peers)
+        s.channels = omitFirstBy(
           ([first, second]: Participants) => first === peerUuid || second === peerUuid,
-        )(c.channels)
+        )(s.channels)
       })
 
       // Inform peer they have registered and give them their uuid

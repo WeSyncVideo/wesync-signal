@@ -15,22 +15,22 @@ describe('Server Tests', function () {
   describe('with import', function () {
     beforeEach(async function () {
       this.serverRunning = true
-      this.clientRunning = false
+      this.sockets = []
       this.Server = require(resolveRoot('server.js')).Server
       this.app = await promisifyListen(this.Server, { port })
-      this.closure = this.app.__closure
-      this.closeServer = __closeServer(this, 'app', 'serverRunning')
-      this.closeClient = __closeClient(this, 'socket', 'clientRunning')
-      this.connect = __connect(this)
+      this.shroud = this.app.__shroud
+      this.closeServer = createCloseServer(this, 'app', 'serverRunning')
+      this.closeClients = createCloseClients(this)
+      this.connect = createConnect(this)
     })
 
     afterEach(async function () {
       if (this.serverRunning) await this.closeServer()
-      if (this.clientRunning) this.closeClient()
+      this.closeClients()
     })
 
     it('should start and stop server successfully', async function () {
-      expect(this.closure).to.be.ok
+      expect(this.shroud).to.be.ok
       expect(getPeerLength(this.app)).to.eq(0)
       expect(getChannelLength(this.app)).to.eq(0)
     })
@@ -39,29 +39,55 @@ describe('Server Tests', function () {
       await this.connect()
     })
 
-    it('should successfully register peer', async function () {
-      await this.connect()
-      return new Promise(resolve => {
-        this.socket.on('registered', p => {
-          expect(p).to.be.ok
-          expect(p.peerUuid).to.match(uuidRegex)
-          expect(getPeerLength(this.app)).to.eq(1)
-          expect(getChannelLength(this.app)).to.eq(0)
-          resolve()
-        })
-        this.socket.emit('register')
+    describe('registration', function () {
+      it('should successfully register single peer', async function () {
+        return R.bind(test, this)(1)
       })
+
+      it('should successfully register multiple peers', async function () {
+        return R.bind(test, this)(4)
+      })
+
+      async function test (num) {
+        const peers = await Promise.all(R.map(() => this.connect())(R.range(0, num)))
+        const promises = peers.map(socket => new Promise(resolve => {
+          socket.on('registered', peer => {
+            expect(peer).to.be.ok
+            expect(peer.peerUuid).to.match(uuidRegex)
+            expect(getPeerLength(this.app)).to.eq(num)
+            expect(getChannelLength(this.app)).to.eq(0)
+            resolve()
+          })
+        }))
+        peers.forEach(p => p.emit('register'))
+
+        return Promise.all(promises)
+      }
+    })
+
+    describe('opening channel', function () {
+
+      async function test () {
+
+      }
+    })
+
+    describe('cleaning up', function () {
+
+      async function test () {
+
+      }
     })
   })
 })
 
 
 function getPeerLength (app) {
-  return getClosurePropLength('peers', app)
+  return getShroudPropLength('peers', app)
 }
 
 function getChannelLength (app) {
-  return getClosurePropLength('channels', app)
+  return getShroudPropLength('channels', app)
 }
 
 function promisifyListen (Server, opts = {}) {
@@ -72,43 +98,39 @@ function promisifyListen (Server, opts = {}) {
   })
 }
 
-var getClosurePropLength = R.curry((propName, app) => {
+var getShroudPropLength = R.curry((propName, app) => {
   return R.pipe(
-    R.path(['__closure', propName]),
+    R.path(['__shroud', propName]),
     R.keys,
     R.length,
   )(app)
 })
 
-function __connect (self) {
+function createConnect (self) {
   function connect () {
     return new Promise((resolve, reject) => {
       const socket = io.connect(`http://localhost:${port}`)
       socket.on('error', err => reject(err))
       socket.on('connect', () => resolve(socket))
-      this.socket = socket
-      this.clientRunning = true
+      this.sockets = R.append(socket)(this.sockets)
     })
   }
 
   return R.bind(connect, self)
 }
 
-function __closeClient (self, target, flag) {
-  function closeClient (target, flag) {
-    if (this[flag]) {
-      this[flag] = false
-      this[target].close()
-    }
+function createCloseClients (self) {
+  function closeClients () {
+    R.map(
+      s => s.close(),
+    )(this.sockets)
+    this.sockets = []
   }
 
-  return R.pipe(
-    R.bind(R.__, self),
-    R.partial(R.__, [target, flag])
-  )(closeClient)
+  return R.bind(closeClients, self)
 }
 
-function __closeServer (self, target, flag) {
+function createCloseServer (self, target, flag) {
   function closeServer (target, flag) {
     return new Promise(resolve => {
       if (this[flag]) {
