@@ -65,11 +65,41 @@ describe('Server Tests', function () {
       }
     })
 
-    describe('opening channel', function () {
+    describe('channel creation', function () {
 
-      async function test () {
+      beforeEach(async function () {
+        const numExtraPeers = 3
+        const sockets = await R.pipe(
+          R.add(2),
+          R.range(0),
+          R.map(() =>this.connect()),
+          Promise.all,
+        )(numExtraPeers)
+        this.peers = await R.map(R.converge(
+          async (socket, peerPromise) => {
+            const { peerUuid } = await peerPromise
+            return { socket, peerUuid }
+          },
+          [
+            R.identity,
+            socket => new Promise(resolve => socket.on('registered', resolve) && socket.emit('register')),
+          ],
+        ))(sockets)
+        ([this.inducer, this.target] = this.peers)
+      })
 
-      }
+      afterEach(function () {
+        this.target = this.inducer = null
+      })
+
+      it(`should succeed if channel doesn't exist`, async function () {
+        const offerChannel = new Promise(resolve => this.target.socket.on('open_channel', resolve))
+        const response = new Promise(resolve => this.inducer.socket.on('response', resolve))
+      })
+
+      it('should fial if channel exists', async function () {
+
+      })
     })
 
     describe('cleaning up', function () {
