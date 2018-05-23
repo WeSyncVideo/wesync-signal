@@ -65,7 +65,7 @@ export function createSignalError (type: ErrorType, message?: string) {
   }
 }
 
-export function createChannelError (channelId: string, type: ErrorType, message?: string) {
+export function createChannelError (channelId: string | undefined, type: ErrorType, message?: string) {
   return {
     channelId,
     ...createSignalError(type, message),

@@ -60,3 +60,20 @@ export type Socket = SocketIO.Socket
  * TODO: Documentation
  */
 export type Participants = [string, string]
+
+/**
+ * TODO:
+ */
+export interface Context {
+  shroud: Shroud
+  socket: Socket
+  peerUuid: string
+}
+
+/**
+ * TODO:
+ */
+export interface Shroud {
+  peers: Peers
+  channels: Channels
+}
