@@ -7,7 +7,7 @@ const glob = require('glob')
 
 task('default', async context => {
   await context.cleanDist()
-  context.linter().runWatch('./src')
+  context.checker().runWatch('./src')
   const { serverConfig, peerConfig } = context.createConfigs()
   context.createInstructions({ serverConfig, peerConfig })
   context.run({ serverConfig, peerConfig })
@@ -26,6 +26,8 @@ task('clean', async context => {
 })
 
 task('build', async context => {
+  const errors = await context.checker().runPromise()
+  if (errors) throw new Error('Type checking failed')
   const { serverConfig, peerConfig } = context.createConfigs()
   context.createInstructions({ serverConfig, peerConfig })
   await context.run({ serverConfig, peerConfig })
@@ -84,7 +86,7 @@ context(class {
     ))
   }
 
-  linter () {
+  checker () {
     return TypeHelper({
       tsConfig: './tsconfig.json',
       basePath: '.',
@@ -100,8 +102,8 @@ context(class {
       cache: false,
       package: 'wesync-signal',
       target: `${target}@es5`,
-      useTypescriptCompiler: true,
       sourceMaps: { project: true, vendor: true },
+      tsConfig: path.resolve('tsconfig.json'),
       plugins: [
         EnvPlugin({
           NODE_ENV: this.isProduction ? 'production' : 'development',

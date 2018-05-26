@@ -1,2 +1,2 @@
 export { Peer } from './peer'
-export { listen } from './server'
+export { Server } from './server'

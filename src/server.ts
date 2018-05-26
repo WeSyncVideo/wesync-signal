@@ -106,7 +106,7 @@ const listeners = {
     }
     const inducerUuid = getOtherUuid(this.peerUuid, this.shroud.channels[channelId].participants)
     const { socket: inducerSocket } = this.shroud.peers[inducerUuid]
-    s.channels[channelId].state = accepted ? 'accepted' : 'rejected'
+    this.shroud.channels[channelId].state = accepted ? 'accepted' : 'rejected'
     inducerSocket.emit('response', { channelId, accepted })
 
   },
