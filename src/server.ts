@@ -15,9 +15,7 @@ import { omitFirstBy, createChannelError, getOtherUuid, debug, createSignalError
 import { Message } from './types/shared'
 import {
   ServerOptions,
-  Channels,
   Participants,
-  Peers,
   Socket,
   Shroud,
   Context,
@@ -76,13 +74,17 @@ const listeners = {
 
   onOpenChannel (this: Context, { targetUuid }: { targetUuid?: string }) {
     const channelId = `${this.peerUuid}-${targetUuid}`
+    if (!targetUuid) {
+      const error = createSignalError('invalid_request', 'request must contain valid targetUuid')
+      return void this.socket.emit('error', error)
+    }
     // Check if target peer exists
     if (!this.shroud.peers[targetUuid]) {
       const error = createChannelError(channelId, 'no_such_peer', 'no such peer')
       return void this.socket.emit('error', error)
     }
     // Check if channel already exists
-    if (s.channels[channelId]) {
+    if (this.shroud.channels[channelId]) {
       const error = createChannelError(channelId, 'channel_already_exists')
       return void this.socket.emit('error', error)
     }
@@ -100,6 +102,10 @@ const listeners = {
   },
 
   onTargetChannelAck (this: Context, { channelId, accepted }: { channelId?: string, accepted?: boolean }) {
+    if (typeof channelId === 'undefined') {
+      const error = createSignalError('invalid_request', 'request must contain valid channel id')
+      return void this.socket.emit('error', error)
+    }
     if (!this.shroud.channels[channelId]) {
       const error = createChannelError(channelId, 'no_such_channel')
       return void this.socket.emit('error', error)
